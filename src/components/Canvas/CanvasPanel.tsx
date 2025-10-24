@@ -207,7 +207,7 @@ export const CanvasPanel: React.FC = () => {
             <Button
               variant="primary"
               size="sm"
-              onClick={handleSave}
+              onClick={() => handleSave()}
               disabled={!content || !title || isSaving}
               isLoading={isSaving}
               aria-label="Save article"
