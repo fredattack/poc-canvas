@@ -14,16 +14,32 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface CognitoAuthenticationResult {
+  AccessToken: string;
+  ExpiresIn: number;
+  TokenType: string;
+  RefreshToken: string;
+  IdToken: string;
+}
+
 export interface LoginResponse {
-  token: string;
-  user: User;
+  response: string;
+  authentication_result: CognitoAuthenticationResult;
 }
 
 // Chat types
+export interface MessageSections {
+  opening: string;
+  title: string;
+  content: string;
+  closing: string;
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant';
   text: string;
+  sections?: MessageSections; // Structured sections for assistant messages
   createdAt: number;
 }
 
@@ -36,8 +52,10 @@ export interface ChatState {
 }
 
 export interface ChatRequest {
-  message: string;
-  conversationId: string;
+  prompt: string;
+  selected_text: string;
+  language: string;
+  financer_id: string;
 }
 
 export interface ChatResponse {

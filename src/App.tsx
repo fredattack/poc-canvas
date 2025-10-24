@@ -12,8 +12,8 @@ import { CanvasPanel } from './components/Canvas/CanvasPanel';
 function App() {
   return (
     <AuthProvider>
-      <ChatProvider>
-        <CanvasProvider>
+      <CanvasProvider>
+        <ChatProvider>
           <div className="flex flex-col h-screen overflow-hidden bg-gray-100">
             {/* Header with authentication */}
             <Header />
@@ -33,8 +33,8 @@ function App() {
               </div>
             </main>
           </div>
-        </CanvasProvider>
-      </ChatProvider>
+        </ChatProvider>
+      </CanvasProvider>
     </AuthProvider>
   );
 }

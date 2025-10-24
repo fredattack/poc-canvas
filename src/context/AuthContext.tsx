@@ -54,10 +54,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await apiLogin(email, password);
 
-      // Store token in memory and localStorage
-      setToken(response.token);
-      setUser(response.user);
-      setStoredToken(response.token);
+      // Extract AccessToken from Cognito authentication_result
+      const accessToken = response.authentication_result.AccessToken;
+      const idToken = response.authentication_result.IdToken;
+
+      // Parse user info from IdToken (JWT)
+      // IdToken contains user claims like email, sub (user ID), etc.
+      const tokenParts = idToken.split('.');
+      if (tokenParts.length === 3) {
+        const payload = JSON.parse(atob(tokenParts[1]));
+        const userId = payload.sub || payload['cognito:username'];
+        const userEmail = payload.email || email;
+
+        // Store AccessToken in memory and localStorage
+        setToken(accessToken);
+        setUser({
+          id: userId,
+          email: userEmail,
+        });
+        setStoredToken(accessToken);
+      } else {
+        throw new Error('Invalid token format');
+      }
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || 'Login failed. Please try again.';
       setError(errorMessage);

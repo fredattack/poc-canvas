@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCanvas } from '../../hooks/useCanvas';
 import { useChat } from '../../hooks/useChat';
 import { Button } from '../UI/Button';
+import { Toast } from '../UI/Toast';
+import { saveArticle } from '../../api/articles';
 
 type ViewMode = 'edit' | 'preview';
 
@@ -10,9 +12,15 @@ type ViewMode = 'edit' | 'preview';
  * Supports localStorage persistence and applying content from assistant
  */
 export const CanvasPanel: React.FC = () => {
-  const { content, setContent, applyFromAssistant, clearContent } = useCanvas();
-  const { lastCanvasContent } = useChat();
+  const { content, title, setContent, applyFromAssistant, clearContent } = useCanvas();
+  const { lastCanvasContent, articleId, financerId, language } = useChat();
   const [viewMode, setViewMode] = useState<ViewMode>('edit');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
 
   /**
    * Handle textarea change
@@ -29,6 +37,66 @@ export const CanvasPanel: React.FC = () => {
       applyFromAssistant(lastCanvasContent);
     }
   };
+
+  /**
+   * Handle save article
+   */
+  const handleSave = async (showToastNotification = false) => {
+    if (!title || !content) {
+      setSaveError('Le titre et le contenu sont requis');
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveSuccess(false);
+    setSaveError(null);
+
+    try {
+      await saveArticle(articleId, title, content, financerId, language);
+      setSaveSuccess(true);
+
+      // Show toast if requested (for auto-save)
+      if (showToastNotification) {
+        setToastMessage('Article sauvegardé automatiquement !');
+        setToastType('success');
+        setShowToast(true);
+      }
+
+      // Hide success message after 3 seconds
+      setTimeout(() => {
+        setSaveSuccess(false);
+      }, 3000);
+    } catch (error: any) {
+      console.error('Failed to save article:', error);
+      const errorMsg = error.response?.data?.message || 'Erreur lors de la sauvegarde';
+      setSaveError(errorMsg);
+
+      // Show error toast if requested
+      if (showToastNotification) {
+        setToastMessage(errorMsg);
+        setToastType('error');
+        setShowToast(true);
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  /**
+   * Listen for auto-save event from ChatContext
+   */
+  useEffect(() => {
+    const handleAutoSave = () => {
+      console.log('📥 Auto-save event received');
+      handleSave(true); // Save with toast notification
+    };
+
+    window.addEventListener('auto-save-article', handleAutoSave);
+
+    return () => {
+      window.removeEventListener('auto-save-article', handleAutoSave);
+    };
+  }, [title, content, articleId, financerId, language]); // Re-create listener when these change
 
   /**
    * Render markdown-like preview (simple version)
@@ -84,14 +152,26 @@ export const CanvasPanel: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <>
+      {/* Toast notification */}
+      {showToast && (
+        <Toast
+          message={toastMessage}
+          type={toastType}
+          onClose={() => setShowToast(false)}
+        />
+      )}
+
+      <div className="flex flex-col h-full bg-white">
       {/* Canvas header */}
       <div className="flex-shrink-0 px-6 py-4 bg-white border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">Canvas</h2>
+          <div className="flex-1 min-w-0 mr-4">
+            <h2 className="text-lg font-semibold text-gray-900">
+              {title || 'Canvas'}
+            </h2>
             <p className="text-sm text-gray-600">
-              Editable content area with auto-save
+              {title ? 'Article généré par l\'assistant' : 'Contenu éditable'}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -123,6 +203,18 @@ export const CanvasPanel: React.FC = () => {
               </button>
             </div>
 
+            {/* Save button */}
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleSave}
+              disabled={!content || !title || isSaving}
+              isLoading={isSaving}
+              aria-label="Save article"
+            >
+              {isSaving ? 'Saving...' : 'Save'}
+            </Button>
+
             {/* Clear button */}
             <Button
               variant="secondary"
@@ -135,6 +227,70 @@ export const CanvasPanel: React.FC = () => {
             </Button>
           </div>
         </div>
+
+        {/* Success message */}
+        {saveSuccess && (
+          <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <svg
+                className="h-5 w-5 text-green-600"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <p className="text-sm font-medium text-green-800">
+                Article sauvegardé avec succès!
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Error message */}
+        {saveError && (
+          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <svg
+                  className="h-5 w-5 text-red-600"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <p className="text-sm font-medium text-red-800">{saveError}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSaveError(null)}
+                className="text-red-600 hover:text-red-700"
+              >
+                <svg
+                  className="h-5 w-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Apply from assistant button */}
         {lastCanvasContent && (
@@ -221,9 +377,10 @@ export const CanvasPanel: React.FC = () => {
       {/* Footer info */}
       <div className="flex-shrink-0 px-6 py-2 bg-gray-50 border-t border-gray-200">
         <p className="text-xs text-gray-500">
-          {content.length} characters • Auto-saved to localStorage
+          {content.length} caractères
         </p>
       </div>
     </div>
+    </>
   );
 };

@@ -12,6 +12,11 @@ interface MessageBubbleProps {
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   const isUser = message.role === 'user';
 
+  // Debug log
+  if (!isUser && message.sections) {
+    console.log('🎨 Rendering message with sections:', message.sections);
+  }
+
   // Format timestamp
   const formatTime = (timestamp: number): string => {
     const date = new Date(timestamp);
@@ -56,7 +61,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           </span>
         </div>
 
-        {/* Message text */}
+        {/* Message content */}
         <div
           className={clsx(
             'text-sm whitespace-pre-wrap break-words',

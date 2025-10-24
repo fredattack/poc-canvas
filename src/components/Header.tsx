@@ -10,8 +10,8 @@ import { isValidEmail, isValidPassword } from '../api/auth';
  */
 export const Header: React.FC = () => {
   const { isAuthenticated, user, login, logout, isLoading, error, clearError } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('financer_super_admin.user@hexeko.com');
+  const [password, setPassword] = useState('WxswriLs74ZZUx6p8Pvg!');
   const [validationErrors, setValidationErrors] = useState<{
     email?: string;
     password?: string;

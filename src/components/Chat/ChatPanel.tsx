@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, type KeyboardEvent, type FormEvent 
 import { useAuth } from '../../hooks/useAuth';
 import { useChat } from '../../hooks/useChat';
 import { MessageBubble } from './MessageBubble';
+import { StructuredMessage } from './StructuredMessage';
 import { Button } from '../UI/Button';
 
 /**
@@ -112,7 +113,15 @@ export const ChatPanel: React.FC = () => {
         ) : (
           <>
             {messages.map((message) => (
-              <MessageBubble key={message.id} message={message} />
+              message.role === 'assistant' && message.sections ? (
+                <StructuredMessage
+                  key={message.id}
+                  sections={message.sections}
+                  timestamp={message.createdAt}
+                />
+              ) : (
+                <MessageBubble key={message.id} message={message} />
+              )
             ))}
             {pending && (
               <div className="flex justify-start mb-4">
