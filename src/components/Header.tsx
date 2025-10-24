@@ -101,7 +101,7 @@ export const Header: React.FC = () => {
         <div className="flex items-center justify-between gap-4 flex-wrap">
           {/* Logo/Title */}
           <div className="flex items-center">
-            <h1 className="text-xl font-bold text-gray-900">Chat Canvas App</h1>
+            <h1 className="text-xl font-bold text-gray-900">Chat Canvas App v2</h1>
           </div>
 
           {/* Auth Section */}
